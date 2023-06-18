@@ -1,0 +1,545 @@
+---
+title: "Sana_module1_19042023"
+output:
+  html_document: default
+  word_document: default
+date: "2023-04-19"
+---
+<CENTER>
+<B>
+<FONT size=4, color="#66B2FF">
+ALY6015 CRN 80403<BR>
+Intermediate Analytics<BR>
+NORTHEASTERN UNIVERSITY<BR>
+</B>
+SANA YASIN<BR>
+Date :`r format(Sys.time(), "%d %B, %Y")`<BR>
+<B>MODULE 1 -Regression Diagnostic with R</B><BR>
+Professor:  Richard He<BR><P>
+</FONT>
+<B>
+</CENTER>
+
+<FONT size=4, color="#66B2FF">
+<B>INTRODUCTION :-</B><BR>
+</FONT>
+
+<FONT size=2, color="#000000">
+In this project we are going fit, interpret  and evaluate linear regression model on AmesHousing dataset. We are also going to implement  diagnostic techniques to identify and correct issues with the model.<BR><P>
+
+<FONT size=4, color="#66B2FF">
+<B>LOADING PACKAGES AND DATASETS:-</B><BR>
+</FONT>
+```{r libraries and datasets , echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(RColorBrewer)
+library(knitr)
+library(ggplot2)
+library(forcats)
+library(car)
+
+#dataset
+AmesHousing <- read_csv("C:/Users/sanay/OneDrive/ALY6015/Assignments/AmesHousing.csv")
+rownames(AmesHousing)<- AmesHousing$PID
+AmesHousing<-AmesHousing[,3:82]
+current_year=as.integer(format(Sys.Date(),"%Y"))
+AmesHousing$Property_age<-current_year-AmesHousing$`Year Built`
+dplyr::glimpse(AmesHousing[1:5,])
+```
+
+<FONT size=2, color="#000000">
+The dataset contains `r nrow(AmesHousing)` rows and `r ncol(AmesHousing)` columns. <BR><P>
+</FONT>
+
+<FONT size=4, color="#66B2FF">
+<B>SUMMARY TABLES FOR CATEGORICAL VARIABLES</B><BR></FONT>
+<FONT size=2, color="#000000">
+In the Dataset, we have 80 columns which include 23 nominal, 23 ordinal, 14 discrete, and 20 continuous variables (and 2 additional observation identifiers which we removed earlier).<P>
+To create summary tables we have seperated the categorical variables and created tables for each of the variables .<P>
+We have replaced the Null values with "N/A".<P></FONT>
+
+```{r categorical summary, echo=FALSE, message=FALSE, warning=FALSE}
+AmesHousing$`Alley`<-replace(AmesHousing$`Alley`,is.na(AmesHousing$`Alley`),"N/A")
+
+AmesHousing$`Mas Vnr Type`<-replace(AmesHousing$`Mas Vnr Type`,is.na(AmesHousing$`Mas Vnr Type`),"N/A")
+
+AmesHousing$`Bsmt Qual`<-replace(AmesHousing$`Bsmt Qual`,is.na(AmesHousing$`Bsmt Qual`),"N/A")
+
+AmesHousing$`Bsmt Cond`<-replace(AmesHousing$`Bsmt Cond`,is.na(AmesHousing$`Bsmt Cond`),"N/A")
+
+AmesHousing$`Bsmt Exposure`<-replace(AmesHousing$`Bsmt Exposure`,is.na(AmesHousing$`Bsmt Exposure`),"N/A")
+
+AmesHousing$`Bsmt Exposure`<-replace(AmesHousing$`Bsmt Exposure`,is.na(AmesHousing$`Bsmt Exposure`),"N/A")
+
+AmesHousing$`BsmtFin Type 1`<-replace(AmesHousing$`BsmtFin Type 1`,is.na(AmesHousing$`BsmtFin Type 1`),"N/A")
+
+AmesHousing$`BsmtFin Type 2`<-replace(AmesHousing$`BsmtFin Type 2`,is.na(AmesHousing$`BsmtFin Type 2`),"N/A")
+
+AmesHousing$`Garage Type`<-replace(AmesHousing$`Garage Type`,is.na(AmesHousing$`Garage Type`),"N/A")
+
+AmesHousing$`Garage Finish`<-replace(AmesHousing$`Garage Finish`,is.na(AmesHousing$`Garage Finish`),"N/A")
+
+AmesHousing$`Garage Qual`<-replace(AmesHousing$`Garage Qual`,is.na(AmesHousing$`Garage Qual`),"N/A")
+
+AmesHousing$`Garage Cond`<-replace(AmesHousing$`Garage Cond`,is.na(AmesHousing$`Garage Cond`),"N/A")
+
+AmesHousing$`Pool QC`<-replace(AmesHousing$`Pool QC`,is.na(AmesHousing$`Pool QC`),"N/A")
+
+AmesHousing$`Fence`<-replace(AmesHousing$`Fence`,is.na(AmesHousing$`Fence`),"N/A")
+
+AmesHousing$`Misc Feature`<-replace(AmesHousing$`Misc Feature`,is.na(AmesHousing$`Misc Feature`),"N/A")
+
+AmesHousing$`Fireplace Qu`<-replace(AmesHousing$`Fireplace Qu`,is.na(AmesHousing$`Fireplace Qu`),"N/A")
+
+AmesHousing$`Electrical`<-replace(AmesHousing$`Electrical  `,is.na(AmesHousing$`Electrical`),"N/A")
+
+AmesHousing<-AmesHousing%>%mutate(`Street`=as.factor(`Street`))
+
+AmesHousing<-AmesHousing%>%mutate(`MS SubClass`=as.factor(`MS SubClass`))
+AmesHousing<-AmesHousing%>%mutate(`MS Zoning`=as.factor(`MS Zoning`))
+AmesHousing<-AmesHousing%>%mutate(`Lot Frontage`=as.factor(`Lot Frontage`))
+AmesHousing<-AmesHousing%>%mutate(`Lot Frontage`=as.factor(`Lot Area`))
+AmesHousing<-AmesHousing%>%mutate(`Lot Frontage`=as.factor(`Street`))
+AmesHousing<-AmesHousing%>%mutate(`Alley`=as.factor(`Alley`))
+AmesHousing<-AmesHousing%>%mutate(`Lot Shape`=as.factor(`Lot Shape`))
+AmesHousing<-AmesHousing%>%mutate(`Land Contour`=as.factor(`Land Contour`))
+AmesHousing<-AmesHousing%>%mutate(`Utilities`=as.factor(`Utilities`))
+AmesHousing<-AmesHousing%>%mutate(`Lot Config`=as.factor(`Lot Config`))
+AmesHousing<-AmesHousing%>%mutate(`Land Slope`=as.factor(`Land Slope`))
+AmesHousing<-AmesHousing%>%mutate(`Condition 1`=as.factor(`Condition 1`))
+AmesHousing<-AmesHousing%>%mutate(`Condition 2`=as.factor(`Condition 2`))
+AmesHousing<-AmesHousing%>%mutate(`Bldg Type`=as.factor(`Bldg Type`))
+AmesHousing<-AmesHousing%>%mutate(`House Style`=as.factor(`House Style`))
+AmesHousing<-AmesHousing%>%mutate(`Roof Style`=as.factor(`Roof Style`))
+AmesHousing<-AmesHousing%>%mutate(`Roof Matl`=as.factor(`Roof Matl`))
+AmesHousing<-AmesHousing%>%mutate(`Exterior 1st`=as.factor(`Exterior 1st`))
+AmesHousing<-AmesHousing%>%mutate(`Exterior 2nd`=as.factor(`Exterior 2nd`))
+AmesHousing<-AmesHousing%>%mutate(`Mas Vnr Type`=as.factor(`Mas Vnr Type`))
+AmesHousing<-AmesHousing%>%mutate(`Exter Qual`=as.factor(`Exter Qual`))
+AmesHousing<-AmesHousing%>%mutate(`Exter Cond`=as.factor(`Exter Cond`))
+AmesHousing<-AmesHousing%>%mutate(`Foundation`=as.factor(`Foundation`))
+AmesHousing<-AmesHousing%>%mutate(`Bsmt Qual`=as.factor(`Bsmt Qual`))
+AmesHousing<-AmesHousing%>%mutate(`Bsmt Cond`=as.factor(`Bsmt Cond`))
+AmesHousing<-AmesHousing%>%mutate(`Bsmt Exposure`=as.factor(`Bsmt Exposure`))
+AmesHousing<-AmesHousing%>%mutate(`BsmtFin Type 1`=as.factor(`BsmtFin Type 1`))
+AmesHousing<-AmesHousing%>%mutate(`BsmtFin Type 2`=as.factor(`BsmtFin Type 2`))
+AmesHousing<-AmesHousing%>%mutate(`Heating`=as.factor(`Heating`))
+AmesHousing<-AmesHousing%>%mutate(`Heating QC`=as.factor(`Heating QC`))
+AmesHousing<-AmesHousing%>%mutate(`Central Air`=as.factor(`Central Air`))
+AmesHousing<-AmesHousing%>%mutate(`Electrical`=as.factor(`Electrical`))
+AmesHousing<-AmesHousing%>%mutate(`Kitchen Qual`=as.factor(`Kitchen Qual`))
+AmesHousing<-AmesHousing%>%mutate(`Functional`=as.factor(`Functional`))
+AmesHousing<-AmesHousing%>%mutate(`Fireplace Qu`=as.factor(`Fireplace Qu`))
+AmesHousing<-AmesHousing%>%mutate(`Garage Type`=as.factor(`Garage Type`))
+AmesHousing<-AmesHousing%>%mutate(`Garage Finish`=as.factor(`Garage Finish`))
+AmesHousing<-AmesHousing%>%mutate(`Garage Qual`=as.factor(`Garage Qual`))
+AmesHousing<-AmesHousing%>%mutate(`Garage Cond`=as.factor(`Garage Cond`))
+AmesHousing<-AmesHousing%>%mutate(`Paved Drive`=as.factor(`Paved Drive`))
+AmesHousing<-AmesHousing%>%mutate(`Pool QC`=as.factor(`Pool QC`))
+AmesHousing<-AmesHousing%>%mutate(`Fence`=as.factor(`Fence`))
+AmesHousing<-AmesHousing%>%mutate(`Misc Feature`=as.factor(`Misc Feature`))
+AmesHousing<-AmesHousing%>%mutate(`Sale Type`=as.factor(`Sale Type`))
+AmesHousing<-AmesHousing%>%mutate(`Sale Condition`=as.factor(`Sale Condition`))
+
+AmesHousing_cat<-AmesHousing%>%select(`Street`,`MS SubClass`,
+`MS Zoning`,
+`Lot Frontage`,
+`Lot Frontage`,
+`Lot Frontage`,
+`Alley`,
+`Lot Shape`,
+`Land Contour`,
+`Utilities`,
+`Lot Config`,
+`Land Slope`,
+`Condition 1`,
+`Condition 2`,
+`Bldg Type`,
+`House Style`,
+`Roof Style`,
+`Roof Matl`,
+`Exterior 1st`,
+`Exterior 2nd`,
+`Mas Vnr Type`,
+`Exter Qual`,
+`Exter Cond`,
+`Foundation`,
+`Bsmt Qual`,
+`Bsmt Cond`,
+`Bsmt Exposure`,
+`BsmtFin Type 1`,
+`BsmtFin Type 2`,
+`Heating`,
+`Heating QC`,
+`Central Air`,
+`Electrical`,
+`Kitchen Qual`,
+`Functional`,
+`Fireplace Qu`,
+`Garage Type`,
+`Garage Finish`,
+`Garage Qual`,
+`Garage Cond`,
+`Paved Drive`,
+`Pool QC`,
+`Fence`,
+`Misc Feature`,
+`Sale Type`,
+`Sale Condition`,
+`Overall Qual`,
+`Overall Cond`,
+`Bsmt Full Bath`,
+`Bsmt Half Bath`,
+`Full Bath`,
+`Half Bath`,
+`Bedroom AbvGr`,
+`Kitchen AbvGr`,
+`TotRms AbvGrd`,
+Fireplaces,
+`Garage Cars`
+)
+#dplyr::glimpse(AmesHousing_cat[1:5,])
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Overall Qual`=as.factor(`Overall Qual`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Overall Cond`=as.factor(`Overall Cond`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Bsmt Full Bath`=as.factor(`Bsmt Full Bath`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Bsmt Half Bath`=as.factor(`Bsmt Half Bath`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Bedroom AbvGr`=as.factor(`Bedroom AbvGr`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Kitchen AbvGr`=as.factor(`Kitchen AbvGr`))
+#AmesHousing_cat<-AmesHousing_cat%>%mutate(`TotRms AbvGr`=as.factor(`TotRms AbvGr`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Fireplaces`=as.factor(`Fireplaces`))
+AmesHousing_cat<-AmesHousing_cat%>%mutate(`Garage Cars`=as.factor(`Garage Cars`))
+
+AmesHousing_cat%>%select(`MS SubClass`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Street`)         %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`MS Zoning`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Lot Frontage`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Lot Frontage`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Lot Frontage`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Alley`)          %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Lot Shape`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Land Contour`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Utilities`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Lot Config`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Land Slope`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Condition 1`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Condition 2`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bldg Type`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`House Style`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Roof Style`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Roof Matl`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Exterior 1st`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Exterior 2nd`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Mas Vnr Type`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Exter Qual`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Exter Cond`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Foundation`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bsmt Qual`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bsmt Cond`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bsmt Exposure`)  %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`BsmtFin Type 1`) %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Overall Qual`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`BsmtFin Type 2`) %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Overall Cond`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bsmt Full Bath`) %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bsmt Half Bath`) %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Bedroom AbvGr`)  %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Kitchen AbvGr`)  %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+#AmesHousing_cat%>%select(`TotRms AbvGr`)  %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Heating`)        %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Heating QC`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Central Air`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Electrical`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Kitchen Qual`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Functional`)     %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Fireplace Qu`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Garage Type`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Garage Finish`)  %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Garage Qual`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Garage Cond`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Paved Drive`)    %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Pool QC`)        %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Fence`)          %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Misc Feature`)   %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Sale Type`)      %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+AmesHousing_cat%>%select(`Sale Condition`) %>%summary()%>%kable(align = "c",format = "markdown",table.attr="style='width:30%;'")
+
+```
+
+<FONT size=4, color="#66B2FF">
+<B>SUMMARY TABLES FOR NUMERICAL VARIABLES</B><BR></FONT>
+<FONT size=2, color="#000000">
+To create summary tables we have separated the numerical variables and created tables for each of the variables .<BR>
+We have replaced the Null values with zeros.<BR><P>
+</FONT>
+
+```{r numerical summary, echo=FALSE, message=FALSE, warning=FALSE}
+AmesHousing$`Mas Vnr Area`<-replace(AmesHousing$`Mas Vnr Area`,is.na(AmesHousing$`Mas Vnr Area`),0)
+AmesHousing$`BsmtFin SF 1`<-replace(AmesHousing$`BsmtFin SF 1`,is.na(AmesHousing$`BsmtFin SF 1`),0)
+AmesHousing$`BsmtFin SF 2`<-replace(AmesHousing$`BsmtFin SF 2`,is.na(AmesHousing$`BsmtFin SF 2`),0)
+AmesHousing$`Total Bsmt SF`<-replace(AmesHousing$`Total Bsmt SF`,is.na(AmesHousing$`Total Bsmt SF`),0)
+AmesHousing$`Garage Area`<-replace(AmesHousing$`Garage Area`,is.na(AmesHousing$`Garage Area`),0)
+AmesHousing$`Bsmt Unf SF`<-replace(AmesHousing$`Bsmt Unf SF`,is.na(AmesHousing$`Bsmt Unf SF`),0)
+AmesHousing_num<-AmesHousing%>%
+  select(`Lot Frontage`,
+         `Lot Area`,
+         `Mas Vnr Area`,
+         `BsmtFin SF 1`,
+         `BsmtFin SF 2`,
+         `Bsmt Unf SF`,
+         `Total Bsmt SF`,
+         `1st Flr SF`,
+         `2nd Flr SF`,
+         `Low Qual Fin SF`,
+         `Gr Liv Area`,
+         `Garage Area`,
+         `Wood Deck SF`,
+         `Open Porch SF`,
+         `Enclosed Porch`,
+         `3Ssn Porch`,
+         `Screen Porch`,
+         `Pool Area` ,
+         `Misc Val`,
+         `Property_age`,
+         SalePrice)
+
+AmesHousing_num%>%pull(`Lot Frontage`    )%>%summary() 
+AmesHousing_num%>%pull(`Lot Area`        )%>%summary()
+AmesHousing_num%>%pull(`Mas Vnr Area`    )%>%summary()
+AmesHousing_num%>%pull(`BsmtFin SF 1`    )%>%summary()
+AmesHousing_num%>%pull(`BsmtFin SF 2`    )%>%summary()
+AmesHousing_num%>%pull(`Bsmt Unf SF`     )%>%summary()
+AmesHousing_num%>%pull(`Total Bsmt SF`   )%>%summary()
+AmesHousing_num%>%pull(`1st Flr SF`      )%>%summary()
+AmesHousing_num%>%pull(`2nd Flr SF`      )%>%summary()
+AmesHousing_num%>%pull(`Low Qual Fin SF` )%>%summary()
+AmesHousing_num%>%pull(`Gr Liv Area`     )%>%summary()
+AmesHousing_num%>%pull(`Garage Area`     )%>%summary()
+AmesHousing_num%>%pull(`Wood Deck SF`    )%>%summary()
+AmesHousing_num%>%pull(`Open Porch SF`   )%>%summary()
+AmesHousing_num%>%pull(`Enclosed Porch`  )%>%summary()
+AmesHousing_num%>%pull(`3Ssn Porch`      )%>%summary()
+AmesHousing_num%>%pull(`Screen Porch`    )%>%summary()
+AmesHousing_num%>%pull(`Pool Area`       )%>%summary()
+AmesHousing_num%>%pull(`Misc Val`        )%>%summary()
+AmesHousing_num%>%pull(`Property_age`    )%>%summary()
+AmesHousing_num%>%pull(SalePrice         )%>%summary()
+
+```
+
+<FONT size=4, color="#66B2FF">
+<B>EXPLORATORY DATA ANALYSIS</B><BR>
+</FONT>
+<FONT size=2, color="#000000">
+The objective of this project is to create linear regression model. For this we need to establish the relation between our target variable "SalesPrice" and predictors variables.Before creating the model we need to examine the predictors graphically . So we will using:-<BR><P>
+1.Scatter plot:- To visualize correlation between target and predictor variables.<BR><P>
+2.Box Plot:-To examine outliers and variation with respect to categorical variables.<BR><P>
+3.Density Plot :- To check the normality of Distributions.<BR><P>
+
+
+```{r scatterplots, echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(3,3))
+
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Total Bsmt SF`,
+     col="red",xlab="Total square feet of basement area",ylab="sales Price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Garage Area`,
+     col="green",xlab="Size of garage in square feet",ylab="Sales Price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`1st Flr SF`,
+     color="blue",xlab="First Floor square feet",ylab="Sales Price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`2nd Flr SF`,
+     col="yellow",xlab="Second floor square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Wood Deck SF`,
+     col="pink",xlab="Wood deck area in square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Pool Area`,
+     col="orange",xlab="Pool area in square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Enclosed Porch`,
+     col="gray",xlab="Enclosed porch area in square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Screen Porch`,
+     col="brown",xlab="Screen porch area in square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Low Qual Fin SF`,
+     col="purple",xlab="Low quality finished square feet (all floors)",ylab="Sales price")
+
+par(mfrow=c(2,2))
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Property_age`,
+     col="red",xlab="Property age",ylab="Sales price")
+
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Lot Area`,
+     col="yellow",xlab="Lot size in square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Gr Liv Area`,
+     col="orange",xlab="Above grade (ground) living area square feet",ylab="Sales price")
+plot(AmesHousing_num$SalePrice~AmesHousing_num$`Misc Val`,
+     col="orange",xlab="$Value of miscellaneous feature
+",ylab="Sales price")
+
+
+```
+<FONT size=4, color="#66B2FF">
+<B>OBSERVATION</B><BR>
+</FONT>
+
+<FONT size=2, color="#000000">
+The variables `Total Bsmt SF`,`1st Flr SF`,`2nd Flr SF`,`Wood Deck SF`,`Gr Liv Area` vary directly with target variable `SalesPrice`.<BR>
+The variable `Property_age` vary negatively with target variable.<BR>
+</FONT>
+
+```{r geom plots, echo=FALSE, message=FALSE, warning=FALSE}
+AmesHousing%>%ggplot(aes(`SalePrice`))+geom_density(fill="green")+labs(title="Density Plot of SalesPrice",subtitle="Module1")
+
+AmesHousing$entire_house_estimate=AmesHousing$`Total Bsmt SF`+AmesHousing$`1st Flr SF`+AmesHousing$`2nd Flr SF`+AmesHousing$`Gr Liv Area`
+
+AmesHousing%>% ggplot(aes(y=`SalePrice`,x=`entire_house_estimate`,color=`Central Air`))+geom_point(size=2,pch=17,cex=2)+geom_smooth(method=lm)+ labs(title="scatterplot showing relationship between areas of house and Price w.r.t Centrally air conditioned",subtitle="Module1")
+
+AmesHousing%>% ggplot(aes(y=`SalePrice`,x=`entire_house_estimate`,color=as.factor(`TotRms AbvGrd`)))+
+  geom_point(size=2,pch=17,cex=2)+geom_smooth(method=lm)+ labs(title="scatterplot showing relationship between areas of house and Price w.r.t total rooms above groud",subtitle="Module1")
+
+AmesHousing%>% ggplot(aes(y=`SalePrice`,x=`Lot Area`,color=`Misc Feature`))+
+  geom_point(size=2,pch=17,cex=2)+geom_smooth(method=lm)+ labs(title="scatterplot showing relationship between areas of Lot and Price w.r.t to Misc Features",subtitle="Module1")
+
+AmesHousing%>% ggplot(aes(y=`SalePrice`,x=`entire_house_estimate`,color=as.factor(`Kitchen AbvGr`)))+
+  geom_point(size=2,pch=17,cex=2)+geom_smooth(method=lm)+ labs(title="scatterplot showing relationship between areas of house and Price w.r.t no of Kitchens above groud",subtitle="Module1")
+
+AmesHousing%>% ggplot(aes(y=`SalePrice`,x=`entire_house_estimate`,color=as.factor(`Fireplaces`)))+
+  geom_point(size=2,pch=17,cex=2)+geom_smooth(method=lm)+ labs(title="scatterplot showing relationship between areas of house and Price w.r.t no of fireplaces ",subtitle="Module1")
+
+AmesHousing%>% ggplot(aes(y=`SalePrice`,x=`entire_house_estimate`,color=as.factor(`Full Bath`)))+
+  geom_point(size=2,pch=17,cex=2)+geom_smooth(method=lm)+ labs(title="scatterplot showing relationship between areas of house and Price w.r.t no of full bathrooms above groud",subtitle="Module1")
+
+```
+<FONT size=4, color="#66B2FF">
+<B>CORRELATION MATRIX:-</B><BR>
+</FONT>
+
+<FONT size=2, color="#000000">
+Correlation is statistical measure of linear dependence between 2 variables . It takes values between +1 to -1. We need to test and plot the correlation matrix for our predictor variables and target variables.<BR></FONT>
+
+
+```{r correlation matrix, echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+
+AmesHousing_cor<-AmesHousing%>%
+  select(`Lot Area`,
+         `Mas Vnr Area`,
+         `BsmtFin SF 1`,
+         `BsmtFin SF 2`,
+         `Bsmt Unf SF`,
+         `Total Bsmt SF`,
+         `1st Flr SF`,
+         `2nd Flr SF`,
+         `Low Qual Fin SF`,
+         `Gr Liv Area`,
+         `Garage Area`,
+         `Wood Deck SF`,
+         `Open Porch SF`,
+         `Enclosed Porch`,
+         `3Ssn Porch`,
+         `Screen Porch`,
+         `Pool Area` ,
+         `Misc Val`,
+         `Property_age`,
+         SalePrice)
+c<-AmesHousing_cor%>%cor()%>%round(digits=2)
+corrplot::corrplot(c,method=c("circle"),type="upper")
+
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`Total Bsmt SF`)
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`Gr Liv Area`)
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`Property_age`)
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`1st Flr SF`)
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`2nd Flr SF`)
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`Open Porch SF`)
+cor.test(AmesHousing_cor$SalePrice,AmesHousing_cor$`Wood Deck SF`)
+```
+<FONT size=4, color="#66B2FF">
+<B>LINEAR REGRESSION MODEL</B><BR>
+</FONT>
+```{r model, echo=FALSE, message=FALSE, warning=FALSE}
+model_ames<-lm(SalePrice~`Total Bsmt SF`+`Gr Liv Area`+`Property_age`+`1st Flr SF`+`2nd Flr SF`+`Open Porch SF`+`Wood Deck SF`,data = AmesHousing)
+summary(model_ames)
+AIC(model_ames)
+BIC(model_ames)
+
+```
+<FONT size=4, color="#66B2FF">
+<B>MODEL INTERPRETATION</B><BR>
+</FONT>
+
+<FONT size=2, color="#000000">
+1.The R-squared values is 0.7184.<BR>
+2.The AIC value is `r AIC(model_ames)``.<BR>
+3.The AIC value is `r BIC(model_ames)``.<BR>
+<FONT>
+
+<FONT size=4, color="#66B2FF">
+<B>DIAGNOSTIC PLOTS</B><BR>
+</FONT>
+
+<FONT size=2, color="#000000">
+we are going to plot 4 diagnostic plots to check the below assumptions :-<P>
+1.Linearity of the data:- The linear relationship between the predictor and the target (y) .This can be checked by residual vs fitted values plot.<BR>
+Normality of residuals.The Q-Q plot is used to check normality of  residual errors .<BR>
+Homogeneity of residuals variance. The residuals are assumed to have a constant variance (homoscedasticity).we need to check this assumption using Scale-location plot.<BR>
+Independence of residuals error terms.<BR><P>
+</FONT>
+
+```{r diagnostic plots, message=FALSE, warning=FALSE}
+par(mfrow=c(2,2))
+plot(model_ames)
+```
+
+
+```{r check multicolinearity , message=FALSE, warning=FALSE}
+vif(model_ames)
+model_ames_1<-lm(SalePrice~`Total Bsmt SF`+`Property_age`+`1st Flr SF`+`2nd Flr SF`+`Open Porch SF`+`Wood Deck SF`,data = AmesHousing)
+summary(model_ames_1)
+par(mfrow=c(2,2))
+plot(model_ames_1)
+vif(model_ames_1)
+
+```
+
+```{r normality of predictors, echo=FALSE, message=FALSE, warning=FALSE}
+AmesHousing%>%ggplot(aes(`Total Bsmt SF`))+geom_density(fill="red")
+AmesHousing%>%ggplot(aes(`Property_age`))+geom_density(fill="pink")
+AmesHousing%>%ggplot(aes(`1st Flr SF`))+geom_density(fill="yellow")
+AmesHousing%>%ggplot(aes(`2nd Flr SF`))+geom_density(fill="green")
+AmesHousing%>%ggplot(aes(`Wood Deck SF`))+geom_density(fill="blue")
+#AmesHousing$Property_age_new<-bcPower(AmesHousing$Property_age,2)
+#AmesHousing%>%ggplot(aes(Property_age_new))+geom_density(fill="pink")
+
+
+```
+
+```{r}
+par(mfrow=c(2,2))
+boxplot(AmesHousing$`Property_age`,col="green",main="boxplot of Property age",ylab="Property_age")
+boxplot(AmesHousing$`SalePrice`,col="red",main="boxplot of Salesprice",ylab="SalesPrice")
+boxplot(AmesHousing$`2nd Flr SF`,col="yellow",main="boxplot of 2nd Flr SF",ylab="2nd Flr SF")
+boxplot(AmesHousing$`Wood Deck SF`,col="pink",main="boxplot of Wood Deck SF",ylab="Wood Deck SF")
+AmesHousing$`SalePrice`%>%boxplot.stats()
+AmesHousing_new<-AmesHousing%>%filter(`SalePrice`<=338931)
+AmesHousing_new%>%ggplot(aes(`Total Bsmt SF`))+geom_density(fill="red")
+AmesHousing_new%>%ggplot(aes((`Property_age`)^2))+geom_density(fill="pink")
+AmesHousing_new%>%ggplot(aes(`1st Flr SF`))+geom_density(fill="yellow")
+AmesHousing_new%>%ggplot(aes((`2nd Flr SF`)^2))+geom_density(fill="green")
+AmesHousing_new%>%ggplot(aes((`Wood Deck SF`)^2))+geom_density(fill="blue")
+
+```
+
+```{r}
+vif(model_ames)
+model_ames_2<-lm(log(SalePrice)~`Total Bsmt SF`+(`Property_age`)+`1st Flr SF`+(`2nd Flr SF`)+(`Wood Deck SF`),data = AmesHousing)
+summary(model_ames_2)
+par(mfrow=c(2,2))
+plot(model_ames_2)
+vif(model_ames_2)
+AIC(model_ames_2)
+BIC(model_ames_2)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(MASS)
+fit_model= lm(SalePrice~`Total Bsmt SF`+`Property_age`+`1st Flr SF`+`2nd Flr SF`+`Wood Deck SF`,data = AmesHousing)
+stepAIC(fit_model,direction="both")
+```
+
