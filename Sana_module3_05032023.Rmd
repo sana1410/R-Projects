@@ -1,0 +1,216 @@
+---
+title: "Sana_module3_05032023"
+output:
+  html_document: default
+  word_document: default
+date: "2023-05-03"
+---
+<CENTER>
+<B>
+<FONT size=4, color="#66B2FF">
+ALY6015 CRN 80403<BR>
+Intermediate Analytics<BR>
+NORTHEASTERN UNIVERSITY<BR>
+</B>
+SANA YASIN<BR>
+Date :`r format(Sys.time(), "%d %B, %Y")`<BR>
+<B>GLM and Logistic Regression</B><BR>
+Professor:  Richard He<BR><P>
+</FONT>
+<B>
+</CENTER>
+```{r libraries and Data , echo=FALSE, message=FALSE, warning=FALSE}
+#library
+library(ISLR)
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(RColorBrewer)
+library(knitr)
+library(ggplot2)
+library(forcats)
+library(caret)
+library(pROC)
+
+#data
+data<-ISLR::College
+dplyr::glimpse(data[1:5,])
+print(paste("The null values in dataset is ",sum(is.na(data))))
+print(paste("The dataset has ",nrow(data)," rows and ",ncol(data),"columns"))
+data%>%select(Private)%>%table%>%kable()
+print("Descriptive statistics for Column Apps")
+data%>%pull(Apps)%>%summary()
+print("Descriptive statistics for Column Accept")
+data%>%pull(Accept)%>%summary()
+print("Descriptive statistics for Column Enroll")
+data%>%pull(Enroll)%>%summary()
+print("Descriptive statistics for Column Top10perc")
+data%>%pull(Top10perc)%>%summary()
+print("Descriptive statistics for Column Top25perc")
+data%>%pull(Top25perc)%>%summary()
+print("Descriptive statistics for Column F.Undergrad")
+data%>%pull(F.Undergrad)%>%summary()
+print("Descriptive statistics for Column P.Undergrad")
+data%>%pull(P.Undergrad)%>%summary()
+print("Descriptive statistics for Column Outstate")
+data%>%pull(Outstate)%>%summary()
+print("Descriptive statistics for Column Room.Board")
+data%>%pull(Room.Board)%>%summary()
+print("Descriptive statistics for Column Books")
+data%>%pull(Books)%>%summary()
+print("Descriptive statistics for Column Personal")
+data%>%pull(Personal)%>%summary()
+print("Descriptive statistics for Column PhD")
+data%>%pull(PhD)%>%summary()
+print("Descriptive statistics for Column Terminal")
+data%>%pull(Terminal)%>%summary()
+print("Descriptive statistics for S.F.Ratio Terminal")
+data%>%pull(S.F.Ratio)%>%summary()
+print("Descriptive statistics for perc.alumni Terminal")
+data%>%pull(perc.alumni)%>%summary()
+print("Descriptive statistics for Expend Terminal")
+data%>%pull(Expend)%>%summary()
+print("Descriptive statistics for Grad.Rate Terminal")
+data%>%pull(Grad.Rate)%>%summary()
+##creating new columns 
+data$`Acceptance Rate`<-data$`Accept`/sum(data$`Apps`)
+data$`Enrollment Rate`<-data$`Enroll`/sum(data$`Apps`)
+print("Descriptive statistics for Acceptance Rate")
+data%>%pull(`Acceptance Rate`)%>%summary()
+print("Descriptive statistics for Enrollment Rate")
+data%>%pull(`Enrollment Rate`)%>%summary()
+print("Descriptive statistics for Grad.Rate Terminal")
+#####
+tab1<-data%>%group_by(Private)%>%summarize(`Freq`=n(),
+                                     `Tot Apps`=sum(`Apps`),
+                                     `Acceptance rate`=sum(`Accept`)/sum(`Apps`),
+                                     `Enroll Rate`=sum(`Enroll`)/sum(`Apps`),
+                                     `Top10perc`=sum(`Top10perc`),
+                                     `Top25perc`=sum(`Top25perc`),
+                                     `F.Undergrad`=sum(`F.Undergrad`),
+                                     `P.Undergrad`=sum(`P.Undergrad`),
+                                     `Grad.Rate`=sum(`Grad.Rate`),
+                                     `S.F.Ratio`=sum(`S.F.Ratio`),
+                                     `Outstate`=sum(`Outstate`),
+                                     `Room.Board`=sum(`Room.Board`),
+                                     `PhD`=sum(`PhD`))
+tab1%>%kable()
+
+
+```
+
+```{r EDA, echo=FALSE, message=FALSE, warning=FALSE}
+#boxplots
+par(mfrow=c(2,1))
+par(mai=c(1,1,0.2,0.2))
+boxplot((data$`Acceptance Rate`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#E5FFCC","#CC0000"),xlab="Acceptance Rate",
+        ylab="",main="Boxplot showing Acceptance rate in Private/Public university")
+boxplot((data$`Enrollment Rate`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#FFCCCC","#33FFFF"),xlab="Enrollment rate",
+        ylab="",main="Boxplot showing Enrollment rate in Private/Public university")
+
+par(mfrow=c(2,1))
+boxplot((data$`Top10perc`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#CCCC00","#CC00CC"),xlab="%new students from top 10% of H.S. class",
+        ylab="",main="Boxplot showing top 10% of H.S. class Private/Public university")
+boxplot((data$`Top25perc`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#99FF99","#FF8000"),xlab="%new students from top 25% of H.S. class",
+        ylab="",main="Boxplot showing top 25% of H.S. class Private/Public university")
+
+par(mfrow=c(2,1))
+boxplot((data$`Outstate`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#33FF33","#FF99FF"),xlab="Out-of-state tuition",
+        ylab="",main="Boxplot showing Out-of-state tuition in Private/Public university")
+boxplot((data$`Room.Board`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#FFF666","#994c00"),xlab="Room and board costs",
+        ylab="",main="Boxplot showing Room and board costs in Private/Public university")
+
+par(mfrow=c(2,1))
+boxplot((data$`S.F.Ratio`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#33FF33","#FF99FF"),xlab="Student/faculty ratio",
+        ylab="",main="Boxplot showing Student/faculty ratio in Private/Public university")
+boxplot((data$`Expend`)~data$Private,horizontal = TRUE,las=2,
+        col=c("#FFF666","#994c00"),xlab="Instructional expenditure per student",
+        ylab="",main="Boxplot showing Instructional expenditure per student in Private/Public university")
+
+par(mfrow=c(1,1))
+boxplot((data$`F.Undergrad`/1000)~data$Private,horizontal = TRUE,las=2,
+        col=c("#33FF33","#FF99FF"),xlab="Number of fulltime undergraduates",
+        ylab="",main="Boxplot showing Number of fulltime undergraduates in Private/Public university")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+##scatterplots
+data%>%ggplot(aes(x=Top10perc,y=F.Undergrad,color=Private))+geom_point(aes(shape=Private))
+data%>%ggplot(aes(x=Top25perc,y=F.Undergrad,color=Private))+geom_point(aes(shape=Private))
+data%>%ggplot(aes(x=`S.F.Ratio`,y=`Expend`,color=Private))+geom_point(aes(shape=Private))
+data%>%ggplot(aes(x=`Outstate`,y=`Room.Board`,color=Private))+geom_point(aes(shape=Private))
+data%>%ggplot(aes(x=`F.Undergrad`,y=`Enroll`,color=Private))+geom_point(aes(shape=Private))
+
+```
+
+```{r density plots , echo=FALSE, message=FALSE, warning=FALSE}
+data%>%ggplot(aes(x=Top10perc,fill=Private))+geom_density(alpha=0.4)
+data%>%ggplot(aes(x=Top25perc,fill=Private))+geom_density(alpha=0.4)
+data%>%ggplot(aes(x=F.Undergrad,fill=Private))+geom_density(alpha=0.4)
+data%>%ggplot(aes(x=Outstate,fill=Private))+geom_density(alpha=0.4)
+```
+
+
+```{r}
+data_corr<-data
+data_corr$private<-ifelse(data$Private=="Yes","1","0")
+data_corr$private<-as.numeric(data_corr$private)
+matrix_cor=cor(data_corr[,2:21])
+corrplot::corrplot(matrix_cor)
+dplyr::glimpse(data_corr[1:5,])
+```
+
+
+
+```{r test/train, echo=FALSE, message=FALSE, warning=FALSE}
+#dividing in test/train data
+set.seed(123)
+trainIndex<-createDataPartition(data$Private,p=0.70,list=FALSE)
+train<-data[trainIndex,]
+dplyr::glimpse(train[1:5,])
+test<-data[-trainIndex,]
+dplyr::glimpse(test[1:5,])
+print(paste("The train dataset has ",nrow(train)," rows and ",ncol(train),"columns"))
+print(paste("The train dataset has ",nrow(test)," rows and ",ncol(test),"columns"))
+```
+
+```{r logistic regression, echo=FALSE, message=FALSE, warning=FALSE}
+####GLM modelling
+model1<-glm(Private~.,data=train,family=binomial(link="logit"))
+summary(model1)
+
+model2<-glm(Private~F.Undergrad+Outstate,data=train,family=binomial(link="logit"))
+summary(model2)
+coef(model2)
+exp(coef(model2))
+####predict
+prob<-predict(model2,newdata=train,type="response")
+predicted.classes<-as.factor(ifelse(prob>=0.5,"Yes","No"))
+
+confusionMatrix(predicted.classes,train$Private,positive="Yes")
+ROC1<-roc(train$Private,prob)
+plot(ROC1,col="blue",ylab="Sensitivity-TP Rate",xlab="Specificity-FP Rate")
+auc<-auc(ROC1)
+auc
+
+```
+
+```{r test data, echo=FALSE, message=FALSE, warning=FALSE}
+prob<-predict(model2,newdata=test,type="response")
+predicted.classes<-as.factor(ifelse(prob>=0.5,"Yes","No"))
+
+confusionMatrix(predicted.classes,test$Private,positive="Yes")
+ROC2<-roc(test$Private,prob)
+plot(ROC2,col="blue",ylab="Sensitivity-TP Rate",xlab="Specificity-FP Rate")
+auc2<-auc(ROC2)
+auc2
+
+```
+
