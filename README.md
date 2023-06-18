@@ -1,4 +1,4 @@
-# [GLM and LOGISTIC REGRESSION](https://github.com/sana1410/R-Projects/blob/main/Sana_module3_05032023.Rmd)
+# ![GLM and LOGISTIC REGRESSION](https://github.com/sana1410/R-Projects/blob/main/Sana_module3_05032023.Rmd)
 ## INTRODUCTION :-
 ## Generalised Linear Models :-
 Generalised liner modeling technique is the generalisation of linear regression predictive model to various non linear distribution.For GLM we do not need our target variable to be normally distributed. The target variable can be binary or even counts.
